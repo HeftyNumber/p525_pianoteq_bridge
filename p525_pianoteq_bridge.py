@@ -3,6 +3,7 @@ import time
 import rtmidi
 import signal
 import sys
+import math
 
 # ==============================================================================
 #                      TUNABLE PERFORMANCE PROFILE VARIABLES
@@ -10,10 +11,8 @@ import sys
 
 # --- 1. Note-Off Velocity Curve Configuration ---
 # Dictates how fast or slow finger releases scale down into MIDI values (0-127).
-# Higher values (e.g., 450-600) compress the response curve, meaning your
-# releases must be incredibly slow to hit quiet damper values. Lower values
-# require your finger to snap off the key aggressively to get high values.
-RELEASE_CURVE_MULTIPLIER = 450
+# Applying an exponential scale (previously linear)
+RELEASE_CURVE_MULTIPLIER = 60.0
 
 # --- 2. Fallback Safety Baseline Velocity ---
 # The default release velocity applied if a note-off command is detected
@@ -51,6 +50,10 @@ midi_out.open_virtual_port("P525_Fix_Out")
 # constant time directly from continuous memory blocks during dense polyphonic performance.
 release_tracking = [0.0] * 128
 
+# TRACKING ARRAY Prevents duplicate Note-Offs from breaking shallow restrikes.
+# False = Note is currently off/released. True = Note is currently pressed down.
+note_states = [False] * 128
+
 # --- Dynamic Local Cache Strategy ---
 # Extracting core external methods directly into the local namespace boundary.
 # This prevents costly dynamic global lookups inside the time-critical event cycle.
@@ -81,21 +84,35 @@ def process_midi_event(event_data, data=None):
 
     # --- 1. Catch Note-On to Reset Memory Registers (Command 0x90 with velocity > 0) ---
     if cmd == 0x90 and velocity > 0:
-        release_tracking[note] = 0.0  # Instantly wipe stale release timers on restrike
-        send_message(raw_bytes)       # Route the original un-altered Note On payload down the wire
+        release_tracking[note] = 0.0  # Wipe stale release timers on restrike
+        note_states[note] = True      # Explicitly mark this note as actively held down
+
+        # REALISM MODIFICATION: Silent Damper-Touch Restrike
+        # If the velocity is extremely low (e.g., <= 3), the finger is touching the key
+        # to drop the damper but not fast enough to throw the acoustic hammer against the string.
+ #       if velocity <= 3:
+            # We swallow the Note-On so Pianoteq doesn't make a new sound,
+            # but we allow the script state to reset so the subsequent release dampens correctly.
+ #           return
+
+        send_message(raw_bytes)       # Route standard audible Note On payload down the wire
         return
 
     # --- 2. Catch Yamaha Polyphonic Aftertouch Release Flag (Command 0xA0, Value 18) ---
-    elif cmd == 0xA0 and velocity == 18:
-        # If no timer is currently active for this note, log the release initiation timestamp
-        if release_tracking[note] == 0.0:
+    if cmd == 0xA0 and velocity == 18:
+        if note_states[note] and release_tracking[note] == 0.0:
             release_tracking[note] = current_time
-        return # Yamaha specific physical hardware tag. Swallow and drop; do not route to Pianoteq.
+        return # Swallow only the hardware release tag.
 
     # --- 3. Intercept and Modify the Note-Off Command (0x80 OR 0x90 running status zero flag) ---
     elif cmd == 0x80 or (cmd == 0x90 and velocity == 0):
+        # If the note has already been turned off, silently drop all duplicate note-off events!
+        if not note_states[note]:
+            return
+
         start_time = release_tracking[note]
-        release_tracking[note] = 0.0  # Consume token immediately to reset state safely
+        release_tracking[note] = 0.0  # Consume token immediately
+        note_states[note] = False     # Lock out further Note-Off calculations until the next Note-On
 
         # Enforce clean standard 0x80 note_off status byte across legacy MIDI engines
         out_status = 0x80 | channel
@@ -103,23 +120,23 @@ def process_midi_event(event_data, data=None):
         # Evaluate timestamp integrity against customizable safety expiration thresholds
         if start_time > 0.0 and (current_time - start_time) <= STALE_TIMEOUT_SEC:
             delta_time = current_time - start_time
-            
-            # Evaluates against customizable release curve math
-            calculated_velocity = int(127 - (delta_time * RELEASE_CURVE_MULTIPLIER))
-            
-            # Low-latency structural conditional clamping structure.
-            # Avoids calling Python's expensive max() / min() stack layer changes.
+
+            # EXPONENTIAL DECAY FORMULA
+            # Maps narrow 4ms-40ms P-525 hardware deltas into a wide, musical 0-127 MIDI spectrum.
+            calculated_velocity = int(127 * math.exp(-RELEASE_CURVE_MULTIPLIER * delta_time))
+
+            # Low-latency structural conditional clamping structure
             if calculated_velocity > 127:
                 out_vel = 127
-            elif calculated_velocity < 0:
-                out_vel = 0
+            elif calculated_velocity < 15:
+                out_vel = 15
             else:
                 out_vel = calculated_velocity
         else:
             # Force standard baseline velocity fallback for expired or missed timing elements
             out_vel = FALLBACK_RELEASE_VELOCITY
 
-        # Generate a fresh valid mutable byte list package securely rather than mutating raw tuples
+        # Generate a fresh valid package and send
         send_message([out_status, note, out_vel])
         return
 
