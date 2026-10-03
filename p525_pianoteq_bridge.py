@@ -1,4 +1,5 @@
-#!/usr/bin/env python3
+#!/home/mfw/Source/p525_pianoteq_bridge/.venv/bin/python
+
 """
 Yamaha P-525 Polytouch Intercept & Resolution Driver Bridge.
 
@@ -18,6 +19,7 @@ import rtmidi
 import signal
 import sys
 import math
+from wakepy import keep  # Integrated to natively handle DBus inhibition on Arch Linux (KDE)
 
 # ==============================================================================
 #                      TUNABLE PERFORMANCE PROFILE VARIABLES
@@ -201,20 +203,45 @@ print("Routing setup: P525_Fix_Out   -> [Pianoteq]")
 def clean_exit(signum, frame):
     """
     Maintains clean state transitions across system architecture frameworks,
-    ensuring virtual drivers drop cleanly without creating orphaned lock configurations.
+    ensuring virtual drivers drop cleanly without creating orphaned configurations.
     """
     print("\nClosing optimized ports cleanly and releasing OS MIDI resources...")
     midi_in.close_port()
     midi_out.close_port()
+    print("KDE Desktop Lock State: Sleep and Screen Locking are now UNBLOCKED.")
     sys.exit(0)
 
 # Bind system signals to clean termination routines
 signal.signal(signal.SIGTERM, clean_exit)
 signal.signal(signal.SIGINT, clean_exit)
 
-# Hold parent thread execution path with minimal background processor utilization
-try:
-    while True:
-        time.sleep(3600)
-except KeyboardInterrupt:
-    clean_exit(None, None)
+# ==============================================================================
+#             PRODUCTION OS power profiles INHIBITION BLOCK
+# ==============================================================================
+# ==============================================================================
+#             PRODUCTION OS POWER PROFILES INHIBITION BLOCK
+# ==============================================================================
+# Interacts with the local freedesktop DBus desktop framework to guarantee high-
+# priority performance stability. Instantiating this layer stops automated energy-
+# saving suspension states, monitors screen dimming parameters, and halts system
+# lockouts while dense automated live tracking sequences are active.
+print("Initializing system environment permissions...")
+
+# The wakepy 'keep.presenting()' configuration generates a contextual lock mode.
+# When active, it communicates over the desktop user session bus to suppress
+# 'org.freedesktop.ScreenSaver' and 'org.freedesktop.PowerManagement' timeouts.
+with keep.presenting():
+    print("KDE Desktop Lock State: Sleep and Screen Locking are now BLOCKED.")
+    print("--- Fast Optimized Lean Realism Bridge Active ---")
+    print("Routing setup: [Input Engine] -> P525_Fix_In")
+    print("Routing setup: P525_Fix_Out   -> [Pianoteq]")
+
+    # Hold parent thread execution path with minimal background processor utilization.
+    # Using an extended thread suspend delay prevents polling loops from robbing CPU
+    # cycles away from the high-frequency asynchronous rtmidi event thread.
+    try:
+        while True:
+            time.sleep(3600)
+    except KeyboardInterrupt:
+        # Intercept manual shell interrupts to cleanly process global hardware unlinking
+        clean_exit(None, None)
