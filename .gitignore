@@ -30,3 +30,5 @@ dist/
 
 # MIDI test (optional - adjust as needed)
 # TestSession.mid
+p525_pianoteq_bridgeGoogle.py
+p525_pianoteq_bridgeQwen.py
