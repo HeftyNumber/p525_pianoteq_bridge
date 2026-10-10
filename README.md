@@ -14,49 +14,72 @@ A Python MIDI bridge that captures P525 keyboard polytouch release velocity and 
 
 ## Python Library Installation (Arch Linux)
 
-This project was originally developed and tested on **Arch Linux**. All required Python libraries are available in the official Arch Linux repositories and can be installed via `pacman`:
+This project was originally developed and tested on **Arch Linux**. The recommended approach is to use a Python virtual environment with `pip` for the Python packages, as `wakepy` is not available in the official Arch repositories.
 
+### Setup (recommended)
 ```bash
-# Install required Python packages from Arch main repositories
-sudo pacman -S python-rtmidi python-mido python-wakepy
-```
+# Create and activate virtual environment
+python3 -m venv .venv
+source .venv/bin/activate
 
-**Package details:**
-- `python-rtmidi` — Python bindings for RtMidi (MIDI I/O)
-- `python-mido` — MIDI Objects (MIDI file parsing/playback for testing)
-- `python-wakepy` — Cross-platform keep-awake/inhibit sleep (DBus integration for KDE/Plasma)
-
-**Alternative (pip):**
-If you prefer pip or are on a different distribution:
-```bash
+# Install required Python packages via pip
 pip install rtmidi mido wakepy
 ```
 
-**Note:** On Arch Linux, using `pacman` is recommended as it handles system integration (DBus, shared libraries) and updates automatically with system upgrades.
+### Alternative: System packages (partial)
+`rtmidi` and `mido` are available in Arch repositories, but `wakepy` is not:
+```bash
+# Install what's available from Arch repos
+sudo pacman -S python-rtmidi python-mido
+
+# Then install wakepy in your virtual environment
+pip install wakepy
+```
+
+**Package details:**
+- `rtmidi` — Python bindings for RtMidi (MIDI I/O)
+- `mido` — MIDI Objects (MIDI file parsing/playback for testing)
+- `wakepy` — Cross-platform keep-awake/inhibit sleep (DBus integration for KDE/Plasma)
+
+**Note:** The script uses `#!/usr/bin/env python3` shebang, so it will use whatever Python is active in your PATH. Activate the virtual environment (`.venv/bin/activate`) before running, or run directly with `.venv/bin/python p525_pianoteq_bridge.py`.
 
 ## Execution Flow
 
-### Starting the Bridge
+### Starting the Bridge (via RaySession / Patchbay)
+Use the wrapper script which activates the virtual environment automatically:
+
 ```bash
-python3 p525_pianoteq_bridge.py
+./run_bridge.sh
 ```
+
+**In RaySession / qpwgraph / Carla:** Add `run_bridge.sh` as the executable (not the `.py` file directly). The wrapper activates `.venv` and runs the bridge.
+
 Creates virtual ports:
 - Input: `P525_Fix_In`
 - Output: `P525_Fix_Out` → connects to Pianoteq
 
 ### Testing with MIDI File
 ```bash
-python3 midi_test_player.py
+./run_test_player.sh
 ```
 Selects a `.mid` file and routes playback to `MIDI_Test_Player_Out` → connect to `P525_Fix_In` via patchbay (e.g., qpwgraph, Carla, RaySession, or `aconnect`).
 
+### Direct Execution (without wrappers)
+If you prefer to run directly with the virtual environment activated:
+```bash
+source .venv/bin/activate
+python3 p525_pianoteq_bridge.py
+# or
+.venv/bin/python p525_pianoteq_bridge.py
+```
+
 **Note on testing:** The included MIDI test file is a practice recording from the P-525 with typical polytouch output. To properly test the bridge:
-1. Start the bridge: `python3 p525_pianoteq_bridge.py`
+1. Start the bridge: `./run_bridge.sh` (or add `run_bridge.sh` to RaySession)
 2. In your patchbay (qpwgraph/Carla/RaySession), connect:
    - `MIDI_Test_Player_Out` → `P525_Fix_In`
    - `P525_Fix_Out` → Pianoteq MIDI input
 3. Start Pianoteq and open its MIDI monitor window
-4. Run the test player: `python3 midi_test_player.py` and select the test MIDI file
+4. Run the test player: `./run_test_player.sh` and select the test MIDI file
 5. Watch the Pianoteq MIDI monitor to verify note-off velocities are being modified (you should see varying release velocities instead of all 64)
 
 ## Critical Tunable Parameters (`p525_pianoteq_bridge.py`)
@@ -105,14 +128,14 @@ KDE Desktop Lock State: Sleep and Screen Locking are now UNBLOCKED.
 
 ## Testing
 ```bash
-# Terminal 1: Run bridge
-python3 p525_pianoteq_bridge.py
+# Terminal 1: Run bridge (use wrapper for venv)
+./run_bridge.sh
 
 # Terminal 2: In patchbay, connect MIDI_Test_Player_Out -> P525_Fix_In -> P525_Fix_Out -> Pianoteq
 # Open Pianoteq MIDI monitor window
 
-# Terminal 2: Play MIDI into P525_Fix_In
-python3 midi_test_player.py
+# Terminal 2: Play MIDI into P525_Fix_In (use wrapper for venv)
+./run_test_player.sh
 # Select the test MIDI file when prompted
 # Watch Pianoteq MIDI monitor for varying note-off velocities
 ```

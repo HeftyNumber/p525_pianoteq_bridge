@@ -1,4 +1,4 @@
-#!/home/mfw/Source/p525_pianoteq_bridge/.venv/bin/python
+#!/usr/bin/env python3
 
 # MIT License - Copyright (c) 2024-2026
 # See LICENSE file for details.
