@@ -216,9 +216,6 @@ signal.signal(signal.SIGTERM, clean_exit)
 signal.signal(signal.SIGINT, clean_exit)
 
 # ==============================================================================
-#             PRODUCTION OS power profiles INHIBITION BLOCK
-# ==============================================================================
-# ==============================================================================
 #             PRODUCTION OS POWER PROFILES INHIBITION BLOCK
 # ==============================================================================
 # Interacts with the local freedesktop DBus desktop framework to guarantee high-
