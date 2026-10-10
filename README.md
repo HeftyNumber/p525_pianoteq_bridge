@@ -116,3 +116,8 @@ python3 midi_test_player.py
 # Select the test MIDI file when prompted
 # Watch Pianoteq MIDI monitor for varying note-off velocities
 ```
+
+## License
+This project is licensed under the **MIT License** - see the [LICENSE](LICENSE) file for details.
+
+Copyright (c) 2024-2026

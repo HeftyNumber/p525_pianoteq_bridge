@@ -1,4 +1,8 @@
 #!/usr/bin/env python3
+
+# MIT License - Copyright (c) 2024-2026
+# See LICENSE file for details.
+
 import sys
 import time
 import signal

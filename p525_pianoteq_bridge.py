@@ -1,5 +1,8 @@
 #!/home/mfw/Source/p525_pianoteq_bridge/.venv/bin/python
 
+# MIT License - Copyright (c) 2024-2026
+# See LICENSE file for details.
+
 """
 Yamaha P-525 Polytouch Intercept & Resolution Driver Bridge.
 
