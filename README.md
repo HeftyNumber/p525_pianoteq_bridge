@@ -12,6 +12,28 @@ A Python MIDI bridge that captures P525 keyboard polytouch release velocity and 
 - `mido` - MIDI file playback (testing only)
 - `wakepy` - System sleep/screen lock inhibition (Linux KDE/DBus)
 
+## Python Library Installation (Arch Linux)
+
+This project was originally developed and tested on **Arch Linux**. All required Python libraries are available in the official Arch Linux repositories and can be installed via `pacman`:
+
+```bash
+# Install required Python packages from Arch main repositories
+sudo pacman -S python-rtmidi python-mido python-wakepy
+```
+
+**Package details:**
+- `python-rtmidi` — Python bindings for RtMidi (MIDI I/O)
+- `python-mido` — MIDI Objects (MIDI file parsing/playback for testing)
+- `python-wakepy` — Cross-platform keep-awake/inhibit sleep (DBus integration for KDE/Plasma)
+
+**Alternative (pip):**
+If you prefer pip or are on a different distribution:
+```bash
+pip install rtmidi mido wakepy
+```
+
+**Note:** On Arch Linux, using `pacman` is recommended as it handles system integration (DBus, shared libraries) and updates automatically with system upgrades.
+
 ## Execution Flow
 
 ### Starting the Bridge
